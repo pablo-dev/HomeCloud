@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 
 /**
  * Class used to manage the properties such as the last sync date
@@ -28,7 +30,8 @@ public class PropManager implements Closeable {
     private final static String DEFAULT_LAST_SYNC = "1970-01-01 00:00:00";
     
     private FileOutputStream configFileOutput = null;
-    private Properties props = null;
+    private PropertiesConfiguration props;
+    private File configFile;
     
     /**
      * Create the <code>FileInputStream</code> by loading the properties
@@ -38,15 +41,14 @@ public class PropManager implements Closeable {
      * @throws FileNotFoundException
      * @throws IOException 
      */
-    public PropManager(String path) throws FileNotFoundException, IOException {
+    public PropManager(String path) throws FileNotFoundException, IOException, ConfigurationException {
         // read the properties
-        props = new Properties();
-        File configFile = new File(path + "\\" + CONFIG_FILE);
+        configFile = new File(path + "\\" + CONFIG_FILE);
         configFile.createNewFile();
+        props = new PropertiesConfiguration(configFile);
         try (FileInputStream configFileInput = new FileInputStream(configFile)) {
             props.load(configFileInput);
         }
-        configFileOutput = new FileOutputStream(configFile);
     }
     
     /**
@@ -55,7 +57,7 @@ public class PropManager implements Closeable {
      * @return the last time when the files were synchronized
      */
     public String getLastSync(String clientId) {
-        String localdDateTime = props.getProperty(clientId + "." + PROP_LAST_SYNC, DEFAULT_LAST_SYNC);
+        String localdDateTime = props.getString(clientId + "." + PROP_LAST_SYNC, DEFAULT_LAST_SYNC);
         return localdDateTime;
     }
     
@@ -64,10 +66,13 @@ public class PropManager implements Closeable {
      * 
      * @throws IOException 
      */
-    public void setLastSync(String clientId) throws IOException {
+    public void setLastSync(String clientId) throws IOException, ConfigurationException {
         String nowDateTime = LocalDateTime.now().format(dateFormatter);
+        props.refresh();
         props.setProperty(clientId + "." + PROP_LAST_SYNC, nowDateTime);
-        props.store(configFileOutput, null);
+        try (FileOutputStream configFileOutput = new FileOutputStream(configFile)) {
+            props.save(configFileOutput);
+        }
     }
 
     @Override
