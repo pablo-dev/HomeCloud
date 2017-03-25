@@ -1,7 +1,7 @@
 /*
  * ...
  */
-package homecloud;
+package com.planetludus;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -30,7 +30,7 @@ import org.apache.commons.configuration.ConfigurationException;
 public class HomeCloud {
     
     private final static int DEFAULT_PORT = 3999;
-    private final static String DEFAULT_STORAGE_PATH = "C:\\Users\\pablo.carnero\\Temp";
+    private final static String DEFAULT_STORAGE_PATH = "C:\\Users\\pablo\\Temp";
     
     private static int port = DEFAULT_PORT;
     private static String storagePath = DEFAULT_STORAGE_PATH;
@@ -85,7 +85,7 @@ public class HomeCloud {
      * Then it asks for the number of file to receive and start the transference for all of them.
      * 
      * @param args the command line arguments
-     * @throws java.io.IOException
+     * @throws IOException
      */
     public static void main(String[] args) throws FileNotFoundException, ConfigurationException {
         
