@@ -38,10 +38,10 @@ public class PropManager implements Closeable {
      * and creating an input stream for saving when needed
      * 
      * @param path the path where the property file will be store in
-     * @throws FileNotFoundException
-     * @throws IOException 
+     * @throws IOException Error creating or reading the config file
+     * @throws ConfigurationException Error loading the config file
      */
-    public PropManager(String path) throws FileNotFoundException, IOException, ConfigurationException {
+    public PropManager(String path) throws IOException, ConfigurationException {
         // read the properties
         configFile = new File(path + "\\" + CONFIG_FILE);
         configFile.createNewFile();
@@ -64,7 +64,8 @@ public class PropManager implements Closeable {
     /**
      * Save the property last sync time with the current date and time
      * 
-     * @throws IOException 
+     * @throws IOException Any read/write error
+     * @throws ConfigurationException Error saving the property file
      */
     public void setLastSync(String clientId) throws IOException, ConfigurationException {
         String nowDateTime = LocalDateTime.now().format(dateFormatter);

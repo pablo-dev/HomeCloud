@@ -1,34 +1,22 @@
-/*
- * ...
- */
 package com.planetludus;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import org.apache.commons.cli.*;
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.log4j.Logger;
+
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.configuration.ConfigurationException;
 
 /**
- * 
+ * Main class of the HomeCloud application.
+ *
  * @author pablo.carnero
  */
 public class HomeCloud {
-    
+
+    private final static Logger logger = Logger.getLogger(HomeCloud.class);
+
     private final static int DEFAULT_PORT = 3999;
     private final static String DEFAULT_STORAGE_PATH = "C:\\Users\\pablo\\Temp";
     
@@ -40,7 +28,7 @@ public class HomeCloud {
      *   -d,--directory <arg>   storage directory
      *   -p,--port <arg>        port number
      * 
-     * @param args 
+     * @param args arguments
      */
     private static void readParameters(String[] args) {
         // reading parameters
@@ -73,7 +61,7 @@ public class HomeCloud {
             storagePath = cmd.getOptionValue("d", DEFAULT_STORAGE_PATH);
             
         } catch (ParseException ex) {
-            System.out.println("Invalid arguments: " + ex.getMessage());
+            logger.error("Invalid arguments: " + ex.getMessage());
             formatter.printHelp("homecloud", options);
             System.exit(1);
         }
@@ -81,13 +69,12 @@ public class HomeCloud {
     
     /**
      * Starts a server listening to a port for incoming connections.
-     * Once a connection is stablished it sends the last sync date to the client.
+     * Once a connection is established it sends the last sync date to the client.
      * Then it asks for the number of file to receive and start the transference for all of them.
      * 
      * @param args the command line arguments
-     * @throws IOException
      */
-    public static void main(String[] args) throws FileNotFoundException, ConfigurationException {
+    public static void main(String[] args) {
         
         readParameters(args);
         
@@ -100,29 +87,29 @@ public class HomeCloud {
             
             while (true)
             {
-                System.out.println("awaiting for connection...");
+                logger.info("awaiting for connection in port " + port + " ...");
                 try (
                         Socket clientSocket = serverSocket.accept();
                         InputStream in = clientSocket.getInputStream();
                         DataInputStream clientData = new DataInputStream(in);
                         OutputStream out = clientSocket.getOutputStream();
-                        DataOutputStream serverData = new DataOutputStream(out);
+                        DataOutputStream serverData = new DataOutputStream(out)
                     ) {
                     
                     String clientId = clientData.readUTF();
                     
-                    System.out.println("connection established with " + clientId);
+                    logger.info("connection established with " + clientId);
                     
-                    System.out.println("sending the last sync date " + propManager.getLastSync(clientId));
+                    logger.info("sending the last sync date " + propManager.getLastSync(clientId));
                     serverData.writeUTF(propManager.getLastSync(clientId));
 
                     int fileNumbers = clientData.readInt();
-                    System.out.println("ready to receive " + fileNumbers + " files");
+                    logger.info("ready to receive " + fileNumbers + " files");
                     
                     for (int i = 0; i < fileNumbers; i++) {
                         
                         String fileName = clientData.readUTF();
-                        System.out.println("receiving the file number " + i + " with name: " + fileName);
+                        logger.info("receiving the file number " + i + " with name: " + fileName);
 
                         output = new FileOutputStream(storagePath + "\\" + fileName);
 
@@ -131,10 +118,10 @@ public class HomeCloud {
                         while (size > 0 && (bytesRead = clientData.read(buffer, 0, (int) Math.min(buffer.length, size))) != -1) {
                             output.write(buffer, 0, bytesRead);
                             size -= bytesRead;
-                            System.out.println(size + " bytes remaining for " + fileName);
+                            logger.info(size + " bytes remaining for " + fileName);
                         }
 
-                        System.out.println(fileName + " recived");
+                        logger.info(fileName + " recived");
                     
                     }
                     
@@ -146,9 +133,10 @@ public class HomeCloud {
             }
             
         } catch (IOException ex) {
-            System.out.println("Input/output Error " + ex.getMessage());
+            logger.error("Input/output Error", ex);
+        } catch (ConfigurationException ex) {
+            logger.error("Error reading the config file. Probably the format is wrong", ex);
         }
-
     }
 
 }
