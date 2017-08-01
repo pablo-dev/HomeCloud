@@ -54,3 +54,7 @@ build/classes/homecloud/PropManager.class
 build/classes/.netbeans_automatic_build
 build/classes/.netbeans_update_resources
 manifest.mf
+
+# Intellij IDEA files
+# .idea/
+# *.iml
