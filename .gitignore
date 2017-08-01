@@ -56,5 +56,5 @@ build/classes/.netbeans_update_resources
 manifest.mf
 
 # Intellij IDEA files
-# .idea/
-# *.iml
+.idea/
+*.iml
