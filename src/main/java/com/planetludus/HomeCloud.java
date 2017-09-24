@@ -20,7 +20,7 @@ public class HomeCloud {
     private final static Logger logger = Logger.getLogger(HomeCloud.class);
 
     private final static int DEFAULT_PORT = 3999;
-    private final static String DEFAULT_STORAGE_PATH = "C:\\Users\\pablo\\Temp";
+    private final static String DEFAULT_STORAGE_PATH = "D:\\Sync";
     private final static int DEFAULT_BUFFER_SIZE = 1024;
     
     private static int port = DEFAULT_PORT;
