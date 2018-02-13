@@ -7,6 +7,8 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Main class of the HomeCloud application.
@@ -24,7 +26,7 @@ public class HomeCloud {
     private static int port = DEFAULT_PORT;
     private static String storagePath = DEFAULT_STORAGE_PATH;
     private static int bufferSize = DEFAULT_BUFFER_SIZE;
-    
+
     /**
      * Read the input arguments
      * -b,--bufferSize <arg>   buffer size
@@ -93,14 +95,13 @@ public class HomeCloud {
         readParameters(args);
         
         // starting the service
-        int bytesRead;
+        int numRead;
         OutputStream output = null;
         try (
                 PropManager propManager = new PropManager(storagePath);
                 ServerSocket serverSocket = new ServerSocket(port)) {
             
-            while (true)
-            {
+            while (true) {
                 logger.info("awaiting for connection in port " + port + " ...");
                 try (
                         Socket clientSocket = serverSocket.accept();
@@ -109,8 +110,9 @@ public class HomeCloud {
                         OutputStream out = clientSocket.getOutputStream();
                         DataOutputStream serverData = new DataOutputStream(out)
                     ) {
-                    
+
                     String clientId = clientData.readUTF();
+
                     logger.info("connection established with " + clientId);
 
                     logger.info("sending the buffer size " + bufferSize);
@@ -121,38 +123,69 @@ public class HomeCloud {
 
                     int fileNumbers = clientData.readInt();
                     logger.info("ready to receive " + fileNumbers + " files");
-                    
+
+                    MessageDigest digest = MessageDigest.getInstance("MD5");
                     for (int i = 0; i < fileNumbers; i++) {
-                        
+
                         String fileName = clientData.readUTF();
                         logger.info("receiving the file number " + i + " with name: " + fileName);
 
-                        output = new FileOutputStream(storagePath + "\\" + fileName);
+                        output = new FileOutputStream(propManager.getFolder(clientId) + "\\" + fileName);
 
-                        long size = clientData.readLong();     
+                        long size = clientData.readLong();
                         byte[] buffer = new byte[bufferSize];
-                        while (size > 0 && (bytesRead = clientData.read(buffer, 0, (int) Math.min(buffer.length, size))) != -1) {
-                            output.write(buffer, 0, bytesRead);
-                            size -= bytesRead;
+                        while (size > 0 && (numRead = clientData.read(buffer, 0, (int) Math.min(buffer.length, size))) != -1) {
+                            output.write(buffer, 0, numRead);
+                            digest.update(buffer, 0, numRead);
+                            size -= numRead;
                             logger.info(size + " bytes remaining for " + fileName);
                         }
 
                         logger.info(fileName + " recived");
-                    
+                        String md5Client = clientData.readUTF();
+                        logger.info("receiving the md5 checksum: " + md5Client);
+
+                        // checking the md5 checksum
+                        byte [] md5Bytes = digest.digest();
+                        String md5 = convertHashToString(md5Bytes);
+                        if (! md5.equals(md5Client)) {
+                            logger.error("Failed transaction for file: " + fileName + ". MD5 checksum does not match");
+                        } else {
+                            logger.info("Transaction OK");
+                        }
                     }
-                    
-                    propManager.setLastSync(clientId);
-                    
+
+                    if (fileNumbers > 0) {
+                        propManager.setLastSync(clientId);
+                    }
+                } catch (IOException ex) {
+                    logger.error("Failed transaction: Input/output Error", ex);
+                } catch (NoSuchAlgorithmException ex) {
+                    logger.error("Unable to find MD5 algorithm", ex);
                 } finally {
                     if (output != null) output.close();
                 }
             }
-            
+
         } catch (IOException ex) {
             logger.error("Input/output Error", ex);
         } catch (ConfigurationException ex) {
-            logger.error("Error reading the config file. Probably the format is wrong", ex);
+            logger.error("Failed transaction: Error reading the config file. Probably the format is wrong", ex);
         }
+    }
+
+    /**
+     * Convert md5 hash to string
+     *
+     * @param md5Bytes md5 byte array
+     * @return md5 string
+     */
+    private static String convertHashToString(byte[] md5Bytes) {
+        String returnVal = "";
+        for (int i = 0; i < md5Bytes.length; i++) {
+            returnVal += Integer.toString(( md5Bytes[i] & 0xff ) + 0x100, 16).substring(1);
+        }
+        return returnVal.toUpperCase();
     }
 
 }
