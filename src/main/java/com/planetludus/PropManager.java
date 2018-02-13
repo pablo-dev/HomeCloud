@@ -3,17 +3,12 @@
  */
 package com.planetludus;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Properties;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+
+import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Class used to manage the properties such as the last sync date
@@ -44,6 +39,7 @@ public class PropManager implements Closeable {
     public PropManager(String path) throws IOException, ConfigurationException {
         // read the properties
         configFile = new File(path + "\\" + CONFIG_FILE);
+        configFile.getParentFile().mkdirs();
         configFile.createNewFile();
         props = new PropertiesConfiguration(configFile);
         try (FileInputStream configFileInput = new FileInputStream(configFile)) {
