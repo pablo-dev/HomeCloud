@@ -58,3 +58,6 @@ manifest.mf
 # Intellij IDEA files
 .idea/
 *.iml
+
+# binaries
+target/
